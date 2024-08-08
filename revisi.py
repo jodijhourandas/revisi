@@ -32,7 +32,7 @@ black_cols = ["1. Konsumsi Rumah Tangga",
 
 kabs = ['6101','6102','6103','6104','6105','6106',
          '6107','6108','6109','6110','6111','6112','6171','6172']
-
+seams = ["qq_","yy_","cc_","imp_yy_","imp_qq_","imp_cc_"]
 real_cols = ["1. Konsumsi Rumah Tangga","    1.a. Makanan, Minuman, dan Rokok","    1.b. Pakaian dan Alas Kaki","    1.c. Perumahan, Perkakas, Perlengkapan dan Penyelenggaraan Rumah Tangga", 
 "    1.d. Kesehatan dan Pendidikan","    1.e. Transportasi, Komunikasi, Rekreasi, dan Budaya","    1.f. Hotel dan Restoran","    1.g. Lainnya"
 ,"2. Konsumsi Lembaga Nonprofit yang Melayani Rumah Tangga","3. Konsumsi Pemerintah",
@@ -175,9 +175,44 @@ def decisionL(vec, code):
         else:
             temp.append("")
     return temp
+
 @st.fragment
-def rekonKabupaten(daftar_kab):
-      # Evaluasi kabupaten
+def rekonKabupaten(daftar_kab,bol_adhb,bol_adhk):
+    seams = ["qq_","yy_","cc_","imp_yy_","imp_qq_","imp_cc_"]
+    # Evaluasi kabupaten
+    for seam in seams:
+        df_prob_des = pd.DataFrame()
+        for idx in range(17):
+            datas = st.session_state[f"{seam}_rec"]
+            mean = datas.iloc[idx,0]
+            vec = datas.iloc[idx,2:].values
+            coln = datas.index[idx]
+            if probdis == "Normal":
+                t_prob = pd.DataFrame({coln : norm(mean, sd).cdf(vec)})
+            else:
+                t_prob = pd.DataFrame({coln : uniform(mean-sd, 2*sd).cdf(vec)})
+            df_prob_des  = pd.concat([df_prob_des,t_prob], axis =1)
+        df_prob_des = df_prob_des.T
+        df_prob_des.columns = datas.columns[2:]
+    
+        if probdis == "Normal":
+            df_new = df_prob_des.apply(pd.cut,
+                        bins = [-0.1, 0.25,0.75,1.1],
+                        labels=[f'🌕',f'🌓',f'🌑']
+                        )
+        else :
+            df_new = df_prob_des.apply(pd.cut,
+                        bins = [-0.1, 0.000001,0.9999999,1.1],
+                        labels=[f'🌕',f'🌓',f'🌑']
+                        )
+        st.session_state[f"{seam}_des"] = df_new
+
+        df_direct = st.session_state[f"{seam}_rec"].iloc[:,2:].multiply(st.session_state[f"{seam}_rec"].iloc[:,0],axis = "index")
+        df_direct = df_direct.apply(pd.cut,
+                        bins = [-10000000,0,10000000],
+                        labels=[True,False]
+                        )
+        st.session_state[f"{seam}_direct"] = df_direct
     st.subheader('Evaluasi Kabupaten', divider='rainbow')
 
     kab = st.selectbox('Pilih Kabupaten :', daftar_kab, index=0)
@@ -224,8 +259,12 @@ def rekonKabupaten(daftar_kab):
         df_res['ADHK Decison'] = df_res['ADHK Decison'][bol_adhk]
         df_res['ADHB Decison'] = df_res['ADHB Decison'][bol_adhb]
         df_res.fillna("",inplace=True)
-    st.dataframe(df_res,height= int(35.2*(len(df_res)+1)),use_container_width = True)
+    
+    st.markdown("🌕 : Growth Kabupaten jauh lebih rendah dari Provinsi (Arah Naik)")
+    st.markdown("🌑 : Growth Kabupaten jauh lebih tinggi dari Provinsi (Arah Trun)")
+    st.markdown("🌓 : Growth Kabupaten dalam toleransi dari Provinsi (Tetap)")
 
+    st.dataframe(df_res,height= int(35.2*(len(df_res)+1)),use_container_width = True)
 
     st.markdown("**Tabel Perbandingan Indikator PDRB Provinsi dan Kabupaten**")
     df_eval = pd.DataFrame(columns= ['Kab Q-to-Q','Prov Q-to-Q','Kab Y-on-Y','Prov Y-on-Y','Kab C-to-C','Prov C-to-C',
@@ -248,9 +287,8 @@ def rekonKabupaten(daftar_kab):
     df_eval['Prov Imp C-to-C'] = st.session_state[f"imp_cc__rec"].iloc[:,0]
 
     st.dataframe(df_eval.style.format(precision=2),height= int(35.2*(len(df_eval)+1)))
+    
 
-
-    # Graphing
 
     st.markdown("**Barplot growth Provinsi dan Kabupaten :**")
     mode = st.selectbox("Mode : ", ["Q-to-Q", "Y-on-Y","C-to-C","Imp Q-to-Q", "Imp Y-on-Y","Imp C-to-C"],index=0)
@@ -273,11 +311,16 @@ def rekonKabupaten(daftar_kab):
     # Here we modify the tickangle of the xaxis, resulting in rotated labels.
     fig.update_layout(barmode='group', xaxis_tickangle=-90, yaxis=dict(autorange='reversed'))
     st.plotly_chart(fig, use_container_width=True)
-    return df_res,df_eval,df
 
-def rekonprovinsi(daftar_kab,adhb,adhk,probdis,sd,desk,isdesk,tahun, tw,putaran):
-    #Parameter
     
+    return df_eval
+
+@st.fragment
+# def graphCompare(df_eval):
+#     # Graphing
+
+
+def loadData(adhb,adhk,tahun, tw,putaran):
     #Provinsi
     st.subheader('Evaluasi Provinsi', divider='rainbow')
     #Rank evaluation
@@ -286,7 +329,9 @@ def rekonprovinsi(daftar_kab,adhb,adhk,probdis,sd,desk,isdesk,tahun, tw,putaran)
     adhb_ptrn = getDataStreamDetail(conn,"adhb",tahun,putaran,tw)
     adhk_kab = getDataStream(conn,"adhk",tahun,putaran,tw,"kab")
     adhb_kab = getDataStream(conn,"adhb",tahun,putaran,tw,"kab")
-
+    adhk_prov = getDataStream(conn,"adhk",tahun,putaran,tw,"prov")
+    adhb_prov = getDataStream(conn,"adhb",tahun,putaran,tw,"prov")
+    
     for kode in kodes:
         adhk_temp = adhk[adhk.kode == int(kode)].drop(["kode","tipe"],axis = 1).set_index("periode")
         adhb_temp = adhb[adhb.kode == int(kode)].drop(["kode","tipe"],axis = 1).set_index("periode")
@@ -315,8 +360,12 @@ def rekonprovinsi(daftar_kab,adhb,adhk,probdis,sd,desk,isdesk,tahun, tw,putaran)
             adhb_temp[f"{tahun}Q{tw}"] = adhb_ptrn[adhb_ptrn.kode == int(kode)].drop("kode",axis =1).T.values
 
         loading_first(f'{kode}_rev',adhb_temp,adhk_temp)
+    return adhk_kab,adhk_prov,adhk_ptrn,adhb_kab,adhb_prov,adhb_ptrn
 
-    
+@st.fragment
+def rekonprovinsi(adhk_kab,adhk_prov,adhk_ptrn,adhb_kab,adhb_prov,adhb_ptrn,daftar_kab,probdis,sd,desk,isdesk):
+    seams = ["qq_","yy_","cc_","imp_yy_","imp_qq_","imp_cc_"]
+    #Parameter
     #Create bump chart
     st.markdown("**Bump Chart Evaluasi Ranking Komponen PDRB**")
     komp_selected = st.selectbox("Komponen :",real_cols,index=16)
@@ -384,10 +433,7 @@ def rekonprovinsi(daftar_kab,adhb,adhk,probdis,sd,desk,isdesk,tahun, tw,putaran)
 
     #Data evaluation deskrepansi
     st.markdown("**Tabel Diskrepansi PDRB Kabupaten dan Provinsi**")
-    adhk_kab = getDataStream(conn,"adhk",tahun,putaran,tw,"kab")
-    adhb_kab = getDataStream(conn,"adhb",tahun,putaran,tw,"kab")
-    adhk_prov = getDataStream(conn,"adhk",tahun,putaran,tw,"prov")
-    adhb_prov = getDataStream(conn,"adhb",tahun,putaran,tw,"prov")
+
 
     df = pd.concat([adhb_kab,adhb_prov,adhk_kab,adhk_prov],axis = 1)
     df.index = real_cols
@@ -443,41 +489,9 @@ def rekonprovinsi(daftar_kab,adhb,adhk,probdis,sd,desk,isdesk,tahun, tw,putaran)
 
     #decision
 
-    for seam in seams:
-        df_prob_des = pd.DataFrame()
-        for idx in range(17):
-            datas = st.session_state[f"{seam}_rec"]
-            mean = datas.iloc[idx,0]
-            vec = datas.iloc[idx,2:].values
-            coln = datas.index[idx]
-            if probdis == "Normal":
-                t_prob = pd.DataFrame({coln : norm(mean, sd).cdf(vec)})
-            else:
-                t_prob = pd.DataFrame({coln : uniform(mean-sd, 2*sd).cdf(vec)})
-            df_prob_des  = pd.concat([df_prob_des,t_prob], axis =1)
-        df_prob_des = df_prob_des.T
-        df_prob_des.columns = datas.columns[2:]
     
-        if probdis == "Normal":
-            df_new = df_prob_des.apply(pd.cut,
-                        bins = [-0.1, 0.25,0.75,1.1],
-                        labels=[f'🌕',f'🌓',f'🌑']
-                        )
-        else :
-            df_new = df_prob_des.apply(pd.cut,
-                        bins = [-0.1, 0.000001,0.9999999,1.1],
-                        labels=[f'🌕',f'🌓',f'🌑']
-                        )
-        st.session_state[f"{seam}_des"] = df_new
 
-        df_direct = st.session_state[f"{seam}_rec"].iloc[:,2:].multiply(st.session_state[f"{seam}_rec"].iloc[:,0],axis = "index")
-        df_direct = df_direct.apply(pd.cut,
-                        bins = [-10000000,0,10000000],
-                        labels=[True,False]
-                        )
-        st.session_state[f"{seam}_direct"] = df_direct
-
-
+    return df,bol_adhb,bol_adhk
 
   
 
@@ -726,5 +740,6 @@ if status == "uploading":
     st.info("Proses Rekonsiliasi Menunggu Seluruh Kabupaten Mengunggah PDRB...")
 #Connection to sql
 
-rekonprovinsi(kabs,adhb,adhk,probdis,sd,desk,isdesk,tahun,triwulan,ptrn)
-rekonKabupaten(kabs)
+adhk_kab,adhk_prov,adhk_ptrn,adhb_kab,adhb_prov,adhb_ptrn = loadData(adhb,adhk,tahun,triwulan,ptrn)
+df,bol_adhb,bol_adhk = rekonprovinsi(adhk_kab,adhk_prov,adhk_ptrn,adhb_kab,adhb_prov,adhb_ptrn,kabs,probdis,sd,desk,isdesk)
+df_eval = rekonKabupaten(kabs,bol_adhb,bol_adhk)
