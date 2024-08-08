@@ -13,7 +13,7 @@ st.set_page_config(
     page_icon="🧊",
     layout="wide"
 )
-
+pd.set_option('display.precision', 2)
 users = ['6100','6101','6102','6103','6104','6105','6106',
          '6107','6108','6109','6110','6111','6112','6171','6172']
 user = '6100'
@@ -302,7 +302,7 @@ def rekonprovinsi(daftar_kab,adhb,adhk,probdis,sd,desk,isdesk,tahun, tw,putaran)
     
     #draw_grid( df.reset_index().round(2), formatter_cells)
 
-    st.dataframe(df.style.applymap(lambda x: f"background-color: {'gold' if (x>=desk or x<=-desk)  else 'white'}", subset=['desk_adhk','desk_adhb'])
+    st.dataframe(df.style.format(precision=2).applymap(lambda x: f"background-color: {'gold' if (x>=desk or x<=-desk)  else 'white'}", subset=['desk_adhk','desk_adhb'])
     ,height= int(35.2*(len(df)+1)))
 
     # Indikator
@@ -450,7 +450,7 @@ def rekonprovinsi(daftar_kab,adhb,adhk,probdis,sd,desk,isdesk,tahun, tw,putaran)
     df_eval['Kab Imp C-to-C'] = st.session_state[f"imp_cc_{kab}_rev"].T.iloc[:,-1:]
     df_eval['Prov Imp C-to-C'] = st.session_state[f"imp_cc__rec"].iloc[:,0]
 
-    st.dataframe(df_eval,height= int(35.2*(len(df_eval)+1)))
+    st.dataframe(df_eval.style.format(precision=2),height= int(35.2*(len(df_eval)+1)))
 
 
     # Graphing
