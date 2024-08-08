@@ -310,16 +310,16 @@ def rekonprovinsi(daftar_kab,adhb,adhk,probdis,sd,desk,isdesk,tahun, tw,putaran)
     seams = ["qq_","yy_","cc_","imp_yy_","imp_qq_","imp_cc_"]
     # selected = st.selectbox('Pilih mode', list(seam_dict.keys()), index=0)
     # selected = seam_dict[selected]
-    # for seam in seams:
-    #     fin = pd.DataFrame()
-    #     temp = st.session_state[f"{seam}6100"].T.iloc[:,-1:]
-    #     temp.columns = [f'6100_prov']
-    #     fin = pd.concat([fin,temp],axis = 1)
-    #     for kode in kodes:
-    #         temp = st.session_state[f"{seam}{kode}_rev"].T.iloc[:,-1:]
-    #         temp.columns = [kode]
-    #         fin = pd.concat([fin,temp],axis = 1)
-    #         st.session_state[f"{seam}_rec"] = fin
+    for seam in seams:
+        fin = pd.DataFrame()
+        temp = st.session_state[f"{seam}6100"].T.iloc[:,-1:]
+        temp.columns = [f'6100_prov']
+        fin = pd.concat([fin,temp],axis = 1)
+        for kode in kodes:
+            temp = st.session_state[f"{seam}{kode}_rev"].T.iloc[:,-1:]
+            temp.columns = [kode]
+            fin = pd.concat([fin,temp],axis = 1)
+            st.session_state[f"{seam}_rec"] = fin
 
     # st.dataframe(st.session_state[f"{selected}_rec"],height= int(35.2*(len(st.session_state[f"{selected}_rec"])+1)) )
 
