@@ -1,10 +1,14 @@
+mysqlclient <= 2.2.4
 altair==4.2.2
 pandas==1.5.3
 plotly==5.9.0
+st_gsheets_connection==0.0.4
+streamlit-aggrid == 1.0.5
 scipy==1.11.3
 SQLAlchemy==2.0.21
-st_gsheets_connection==0.0.4
 streamlit==1.37.0
-streamlit_authenticator<0.3.2
+streamlit_authenticator==0.3.2
 streamlit_elements==0.1.0
+openpyxl == 3.0.10
 xlrd < 2.0
+xlsxwriter == 3.2.0
