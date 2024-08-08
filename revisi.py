@@ -303,7 +303,7 @@ def rekonprovinsi(daftar_kab,adhb,adhk,probdis,sd,desk,isdesk,tahun, tw,putaran)
     #draw_grid( df.reset_index().round(2), formatter_cells)
 
     st.dataframe(df.style.format(precision=2).applymap(lambda x: f"background-color: {'gold' if (x>=desk or x<=-desk)  else 'white'}", subset=['desk_adhk','desk_adhb'])
-    ,height= int(35.2*(len(df)+1)))
+    ,height= int(35.2*(len(df)+1)), use_container_width = True)
 
     # Indikator
     #st.markdown("**Tabel Indikator Pertumbuhan Ekonomi**")
@@ -427,7 +427,7 @@ def rekonprovinsi(daftar_kab,adhb,adhk,probdis,sd,desk,isdesk,tahun, tw,putaran)
         df_res['ADHK Decison'] = df_res['ADHK Decison'][bol_adhk]
         df_res['ADHB Decison'] = df_res['ADHB Decison'][bol_adhb]
         df_res.fillna("",inplace=True)
-    st.dataframe(df_res,height= int(35.2*(len(df_res)+1)))
+    st.dataframe(df_res,height= int(35.2*(len(df_res)+1)),use_container_width = True)
 
 
     st.markdown("**Tabel Perbandingan Indikator PDRB Provinsi dan Kabupaten**")
