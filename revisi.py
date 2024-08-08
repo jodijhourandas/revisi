@@ -175,6 +175,105 @@ def decisionL(vec, code):
         else:
             temp.append("")
     return temp
+@st.fragment
+def rekonKabupaten(daftar_kab):
+      # Evaluasi kabupaten
+    st.subheader('Evaluasi Kabupaten', divider='rainbow')
+
+    kab = st.selectbox('Pilih Kabupaten :', daftar_kab, index=0)
+
+    st.markdown("**Tabel Revisi Komponen PDRB**")
+    df_res = pd.DataFrame(columns= ['Q-to-Q','Y-on-Y','C-to-C',
+                                    'Imp Q-to-Q','Imp Y-on-Y','Imp C-to-C',
+                                    ]
+    )
+    df_res['Q-to-Q'] = st.session_state[f"qq__des"][kab]
+    df_res['Y-on-Y'] = st.session_state[f"yy__des"][kab]
+    df_res['C-to-C'] = st.session_state[f"cc__des"][kab]
+    df_res['Imp Q-to-Q'] = st.session_state[f"imp_qq__des"][kab]
+    df_res['Imp Y-on-Y'] = st.session_state[f"imp_yy__des"][kab]
+    df_res['Imp C-to-C'] = st.session_state[f"imp_cc__des"][kab]
+
+
+    adhk_vec = df_res['Q-to-Q'].astype(str) +df_res['Y-on-Y'].astype(str)+df_res['C-to-C'].astype(str)
+    adhb_vec  = df_res['Imp Q-to-Q'].astype(str) +df_res['Imp Y-on-Y'].astype(str)+df_res['Imp C-to-C'].astype(str)
+
+    df_res['ADHK Decison'] = decisionL(adhk_vec,"ADHK")
+    df_res['ADHB Decison'] = decisionL(adhb_vec,"ADHB")
+
+
+    df_res_dir = pd.DataFrame(columns= ['Q-to-Q','Y-on-Y','C-to-C',
+                                    'Imp Q-to-Q','Imp Y-on-Y','Imp C-to-C',
+                                    ]
+    )
+    df_res_dir['Q-to-Q'] = st.session_state[f"qq__direct"][kab]
+    df_res_dir['Y-on-Y'] = st.session_state[f"yy__direct"][kab]
+    df_res_dir['C-to-C'] = st.session_state[f"cc__direct"][kab]
+    df_res_dir['Imp Q-to-Q'] = st.session_state[f"imp_qq__direct"][kab]
+    df_res_dir['Imp Y-on-Y'] = st.session_state[f"imp_yy__direct"][kab]
+    df_res_dir['Imp C-to-C'] = st.session_state[f"imp_cc__direct"][kab]
+
+    df_res_dir = df_res_dir.T
+    temp = []
+    for cola in df_res_dir.columns:
+        temp.append(df_res_dir.index[df_res_dir[cola]].tolist())
+    print(temp)
+    df_res['Beda Arah'] = temp
+
+    if (isdesk == "True"):
+        df_res['ADHK Decison'] = df_res['ADHK Decison'][bol_adhk]
+        df_res['ADHB Decison'] = df_res['ADHB Decison'][bol_adhb]
+        df_res.fillna("",inplace=True)
+    st.dataframe(df_res,height= int(35.2*(len(df_res)+1)),use_container_width = True)
+
+
+    st.markdown("**Tabel Perbandingan Indikator PDRB Provinsi dan Kabupaten**")
+    df_eval = pd.DataFrame(columns= ['Kab Q-to-Q','Prov Q-to-Q','Kab Y-on-Y','Prov Y-on-Y','Kab C-to-C','Prov C-to-C',
+                                    'Kab Imp Q-to-Q','Prov Imp Q-to-Q','Kab Imp Y-on-Y','Prov Imp Y-on-Y','Kab Imp C-to-C','Prov Imp C-to-C',
+                                    
+                                    ]
+    )
+    df_eval['Kab Q-to-Q'] = st.session_state[f"qq_{kab}_rev"].T.iloc[:,-1:]
+    df_eval['Prov Q-to-Q'] = st.session_state[f"qq__rec"].iloc[:,0]
+    df_eval['Kab Y-on-Y'] = st.session_state[f"yy_{kab}_rev"].T.iloc[:,-1:]
+    df_eval['Prov Y-on-Y'] = st.session_state[f"yy__rec"].iloc[:,0]
+    df_eval['Kab C-to-C'] = st.session_state[f"cc_{kab}_rev"].T.iloc[:,-1:]
+    df_eval['Prov C-to-C'] = st.session_state[f"cc__rec"].iloc[:,0]
+
+    df_eval['Kab Imp Q-to-Q'] = st.session_state[f"imp_qq_{kab}_rev"].T.iloc[:,-1:]
+    df_eval['Prov Imp Q-to-Q'] = st.session_state[f"imp_qq__rec"].iloc[:,0]
+    df_eval['Kab Imp Y-on-Y'] = st.session_state[f"imp_yy_{kab}_rev"].T.iloc[:,-1:]
+    df_eval['Prov Imp Y-on-Y'] = st.session_state[f"imp_yy__rec"].iloc[:,0]
+    df_eval['Kab Imp C-to-C'] = st.session_state[f"imp_cc_{kab}_rev"].T.iloc[:,-1:]
+    df_eval['Prov Imp C-to-C'] = st.session_state[f"imp_cc__rec"].iloc[:,0]
+
+    st.dataframe(df_eval.style.format(precision=2),height= int(35.2*(len(df_eval)+1)))
+
+
+    # Graphing
+
+    st.markdown("**Barplot growth Provinsi dan Kabupaten :**")
+    mode = st.selectbox("Mode : ", ["Q-to-Q", "Y-on-Y","C-to-C","Imp Q-to-Q", "Imp Y-on-Y","Imp C-to-C"],index=0)
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        y=df_eval.index.tolist(),
+        x=df_eval[f'Kab {mode}'].tolist(),
+        name='Nilai Kabupaten',
+        marker_color='#f9c33c',
+        orientation='h'
+    ))
+    fig.add_trace(go.Bar(
+        y=df_eval.index.tolist(),
+        x=df_eval[f'Prov {mode}'].tolist(),
+        name='Nilai Provinsi',
+        marker_color='#321b41',
+        orientation='h'
+    ))
+
+    # Here we modify the tickangle of the xaxis, resulting in rotated labels.
+    fig.update_layout(barmode='group', xaxis_tickangle=-90, yaxis=dict(autorange='reversed'))
+    st.plotly_chart(fig, use_container_width=True)
+    return df_res,df_eval,df
 
 def rekonprovinsi(daftar_kab,adhb,adhk,probdis,sd,desk,isdesk,tahun, tw,putaran):
     #Parameter
@@ -380,104 +479,7 @@ def rekonprovinsi(daftar_kab,adhb,adhk,probdis,sd,desk,isdesk,tahun, tw,putaran)
 
 
 
-    # Evaluasi kabupaten
-    st.subheader('Evaluasi Kabupaten', divider='rainbow')
-
-    kab = st.selectbox('Pilih Kabupaten :', daftar_kab, index=0)
-
-    st.markdown("**Tabel Revisi Komponen PDRB**")
-    df_res = pd.DataFrame(columns= ['Q-to-Q','Y-on-Y','C-to-C',
-                                    'Imp Q-to-Q','Imp Y-on-Y','Imp C-to-C',
-                                    ]
-    )
-    df_res['Q-to-Q'] = st.session_state[f"qq__des"][kab]
-    df_res['Y-on-Y'] = st.session_state[f"yy__des"][kab]
-    df_res['C-to-C'] = st.session_state[f"cc__des"][kab]
-    df_res['Imp Q-to-Q'] = st.session_state[f"imp_qq__des"][kab]
-    df_res['Imp Y-on-Y'] = st.session_state[f"imp_yy__des"][kab]
-    df_res['Imp C-to-C'] = st.session_state[f"imp_cc__des"][kab]
-
-
-    adhk_vec = df_res['Q-to-Q'].astype(str) +df_res['Y-on-Y'].astype(str)+df_res['C-to-C'].astype(str)
-    adhb_vec  = df_res['Imp Q-to-Q'].astype(str) +df_res['Imp Y-on-Y'].astype(str)+df_res['Imp C-to-C'].astype(str)
-
-    df_res['ADHK Decison'] = decisionL(adhk_vec,"ADHK")
-    df_res['ADHB Decison'] = decisionL(adhb_vec,"ADHB")
-
-
-    df_res_dir = pd.DataFrame(columns= ['Q-to-Q','Y-on-Y','C-to-C',
-                                    'Imp Q-to-Q','Imp Y-on-Y','Imp C-to-C',
-                                    ]
-    )
-    df_res_dir['Q-to-Q'] = st.session_state[f"qq__direct"][kab]
-    df_res_dir['Y-on-Y'] = st.session_state[f"yy__direct"][kab]
-    df_res_dir['C-to-C'] = st.session_state[f"cc__direct"][kab]
-    df_res_dir['Imp Q-to-Q'] = st.session_state[f"imp_qq__direct"][kab]
-    df_res_dir['Imp Y-on-Y'] = st.session_state[f"imp_yy__direct"][kab]
-    df_res_dir['Imp C-to-C'] = st.session_state[f"imp_cc__direct"][kab]
-
-    df_res_dir = df_res_dir.T
-    temp = []
-    for cola in df_res_dir.columns:
-        temp.append(df_res_dir.index[df_res_dir[cola]].tolist())
-    print(temp)
-    df_res['Beda Arah'] = temp
-
-    if (isdesk == "True"):
-        df_res['ADHK Decison'] = df_res['ADHK Decison'][bol_adhk]
-        df_res['ADHB Decison'] = df_res['ADHB Decison'][bol_adhb]
-        df_res.fillna("",inplace=True)
-    st.dataframe(df_res,height= int(35.2*(len(df_res)+1)),use_container_width = True)
-
-
-    st.markdown("**Tabel Perbandingan Indikator PDRB Provinsi dan Kabupaten**")
-    df_eval = pd.DataFrame(columns= ['Kab Q-to-Q','Prov Q-to-Q','Kab Y-on-Y','Prov Y-on-Y','Kab C-to-C','Prov C-to-C',
-                                    'Kab Imp Q-to-Q','Prov Imp Q-to-Q','Kab Imp Y-on-Y','Prov Imp Y-on-Y','Kab Imp C-to-C','Prov Imp C-to-C',
-                                    
-                                    ]
-    )
-    df_eval['Kab Q-to-Q'] = st.session_state[f"qq_{kab}_rev"].T.iloc[:,-1:]
-    df_eval['Prov Q-to-Q'] = st.session_state[f"qq__rec"].iloc[:,0]
-    df_eval['Kab Y-on-Y'] = st.session_state[f"yy_{kab}_rev"].T.iloc[:,-1:]
-    df_eval['Prov Y-on-Y'] = st.session_state[f"yy__rec"].iloc[:,0]
-    df_eval['Kab C-to-C'] = st.session_state[f"cc_{kab}_rev"].T.iloc[:,-1:]
-    df_eval['Prov C-to-C'] = st.session_state[f"cc__rec"].iloc[:,0]
-
-    df_eval['Kab Imp Q-to-Q'] = st.session_state[f"imp_qq_{kab}_rev"].T.iloc[:,-1:]
-    df_eval['Prov Imp Q-to-Q'] = st.session_state[f"imp_qq__rec"].iloc[:,0]
-    df_eval['Kab Imp Y-on-Y'] = st.session_state[f"imp_yy_{kab}_rev"].T.iloc[:,-1:]
-    df_eval['Prov Imp Y-on-Y'] = st.session_state[f"imp_yy__rec"].iloc[:,0]
-    df_eval['Kab Imp C-to-C'] = st.session_state[f"imp_cc_{kab}_rev"].T.iloc[:,-1:]
-    df_eval['Prov Imp C-to-C'] = st.session_state[f"imp_cc__rec"].iloc[:,0]
-
-    st.dataframe(df_eval.style.format(precision=2),height= int(35.2*(len(df_eval)+1)))
-
-
-    # Graphing
-
-    st.markdown("**Barplot growth Provinsi dan Kabupaten :**")
-    mode = st.selectbox("Mode : ", ["Q-to-Q", "Y-on-Y","C-to-C","Imp Q-to-Q", "Imp Y-on-Y","Imp C-to-C"],index=0)
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        y=df_eval.index.tolist(),
-        x=df_eval[f'Kab {mode}'].tolist(),
-        name='Nilai Kabupaten',
-        marker_color='#f9c33c',
-        orientation='h'
-    ))
-    fig.add_trace(go.Bar(
-        y=df_eval.index.tolist(),
-        x=df_eval[f'Prov {mode}'].tolist(),
-        name='Nilai Provinsi',
-        marker_color='#321b41',
-        orientation='h'
-    ))
-
-    # Here we modify the tickangle of the xaxis, resulting in rotated labels.
-    fig.update_layout(barmode='group', xaxis_tickangle=-90, yaxis=dict(autorange='reversed'))
-    st.plotly_chart(fig, use_container_width=True)
-    return df_res,df_eval,df
-
+  
 
 @st.dialog("Simulasi PDRB", width = 'large' ) 
 @st.fragment
@@ -725,3 +727,4 @@ if status == "uploading":
 #Connection to sql
 
 rekonprovinsi(kabs,adhb,adhk,probdis,sd,desk,isdesk,tahun,triwulan,ptrn)
+rekonKabupaten(kabs)
