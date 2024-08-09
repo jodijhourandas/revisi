@@ -79,20 +79,24 @@ def getDataStream(conn,tipe,tahun,ptrn, tw, jenis):
         adhk_kab = conn.query(f"SELECT * from putaran_stream WHERE tipe = '{tipe}' AND  tahun = {tahun} AND tw = {tw} AND ptrn = {ptrn} AND kode !='6100' ",ttl = 0)
         adhk_kab = adhk_kab.drop(extra_cols,axis=1).sum()
         adhk_kab.columns = f"{tipe}_{jenis}"
+        conn.close()
         return adhk_kab
     else :
         adhk_prov = conn.query(f"SELECT * from putaran_stream WHERE tipe = '{tipe}' AND  tahun = {tahun} AND tw = {tw} AND ptrn = {ptrn} AND kode ='6100' ",ttl = 0)
         adhk_prov = adhk_prov.drop(extra_cols,axis=1).sum()
         adhk_prov.columns = f"{tipe}_{jenis}"
+        conn.close()
         return adhk_prov
 def getDataStreamDetail(conn,tipe,tahun,ptrn, tw):
     adhk_kab = conn.query(f"SELECT * from putaran_stream WHERE tipe = '{tipe}' AND  tahun = {tahun} AND tw = {tw} AND ptrn = {ptrn} ",ttl = 0)
     adhk_kab = adhk_kab.drop(["tahun","tw","ptrn","tipe"],axis=1)
+    conn.close()
     return adhk_kab
 def sog(df_diff, df_growth):
     pdrb = df_diff.PDRB
     growth = df_growth.PDRB
     res = df_diff.div(pdrb,axis = 0).mul(growth,axis = 0).round(2)
+    conn.close()
     return res
 def loading_first(kode,df_adhb,df_adhk):
     
@@ -670,8 +674,9 @@ def edit_parameter(conn,tahun,triwulan,putaran,metode_value,sd_value, deks_value
         with conn.session as session:
             session.execute(text(quer))
             session.commit()
+            conn.close()
             st.rerun()
-
+        
 
 
 
@@ -722,6 +727,7 @@ pd.options.display.float_format = '${:,.2f}'.format
 
 conn = st.connection('mysql', type='sql',ttl = 0)
 df_putaran = conn.query('SELECT * from putaran;', ttl=0)
+conn.close()
 st.session_state["putaran"] = df_putaran
 tahun = st.session_state["putaran"].iloc[-1, df_putaran.columns.get_loc('tahun')]
 ptrn = st.session_state["putaran"].iloc[-1, df_putaran.columns.get_loc('ptrn')]
@@ -733,6 +739,7 @@ desk = st.session_state["putaran"].iloc[-1, df_putaran.columns.get_loc('deskrepa
 isdesk = st.session_state["putaran"].iloc[-1, df_putaran.columns.get_loc('disk_only')]
 
 df = conn.query('SELECT * from pdrb;',ttl = 0)
+conn.close()
 adhk = df[df.tipe == "adhk"]
 adhb = df[df.tipe == "adhb"]
 
